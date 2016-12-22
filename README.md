@@ -47,3 +47,4 @@ set_zsh_config
 - [ ] Add docker setup
 - [ ] Add ruby setup
 - [ ] Add python setup
+- [ ] Add sublime customization
