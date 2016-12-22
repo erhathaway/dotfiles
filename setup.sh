@@ -4,34 +4,45 @@
 # General Stuff
 #################
 
+printContentLine()
+{
+	printf "\n   ${1}"
+}
+
+getinput()
+{
+	printf "\n   "
+	read "$1"
+}
+
 header()
 {
-	printf "\n**"
+	printf "\n\n**"
 	printf " $1 "
-	printf "**\n"
+	printf "**"
 
 }
 
 footer()
 {
-	printf ""
+	printContentLine "$1"
 }
 
 installing()
 {
-	echo "...installing"
+	printContentLine "...installing"
 	footer
 }
 
 installed()
 {
-	echo "...installed!"
+	printContentLine "...installed!"
 	footer
 }
 
 changes_applied()
 {
-	echo "...changes applied"
+	printContentLine "...changes applied"
 	footer
 }
 
@@ -263,6 +274,25 @@ check_vim()
 	fi
 }
 
+# INSTALL Zsh
+
+install_zsh () 
+{
+	sudo apt-get update &&
+	sudo apt-get install zsh &&
+	sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+}
+
+check_zsh()
+{
+	local name="Zsh and OhMyZsh"
+	local package="zsh"
+
+	if ! pkg_exist "$name" "$package"; then
+		install_zsh
+	fi
+}
+
 #################
 # Check Hardware
 #################
@@ -281,17 +311,21 @@ adjust_trackpoint()
 
 	header "$name"
 
-	printf "The current trackpoint settings are: \nspeed: $current_speed \nsensitivity: $current_sensitivity"
+	printContentLine "The current trackpoint settings are"
+	printContentLine "speed: $current_speed"
+	printContentLine "sensitivity: $current_sensitivity"
 	
-	printf "\n\nEnter a new speed (recommended is 155) or enter the letter 's' to skip\n"
-	read speed
+	printf "\n"
+	printContentLine "Enter a new speed (recommended is 155) or enter the letter 's' to skip"
+	getinput "speed"
 	if [ ! "$speed" == "s" ]; then
 		sudo sh -c "echo $speed > $speed_file"
 		changes_applied
 	fi
 
-	printf "\n\nEnter a new sensitivity (recommended is 175) or enter the letter 's' to skip\n"
-	read sensitivity
+	printf "\n"
+	printContentLine "Enter a new sensitivity (recommended is 175) or enter the letter 's' to skip"
+	getinput "sensitivity"
 	if [ ! "$sensitivity" == "s" ]; then
 		sudo sh -c "echo $sensitivity > $sensitivity_file"
 		changes_applied
@@ -308,13 +342,14 @@ remove_screen_flicker()
 	local configfile="/usr/share/X11/xorg.conf.d/20-intel.conf"
 	local backupconfigfile="${configfile}.bak"
 
-	printf "This operation overwrites the file $configfile.\n A backupfile is made, however you may not wish to do this."
-	printf "\nCurrently the contents of this file are:\n\n"
-	printf "\n****** file start ******\n"
+	printContentLine "This operation overwrites the file $configfile.\n A backupfile is made, however you may not wish to do this."
+	printContentLine "Currently the contents of this file are:\n"
+	printContentLine "****** file start ******\n"
 	cat $configfile
-	printf "****** file end ******"
-	printf "\n\nEnter YES to overwrite the file\n"
-	read choice
+	printContentLine "****** file end ******"
+	printf "\n"
+	printContentLine "Enter YES to overwrite the file or any other character(s) to skip it"
+	getinput "choice"
 
 	if [ "$choice" == "YES" ]; then
 		sudo sh -c "touch configfile"
@@ -339,16 +374,21 @@ remove_screen_flicker()
 # Run checks and install if needed
 #################
 
-# check_sublime
-# check_gdebi
-# check_git
-# check_node
-# check_npm
-# check_support_libraries
-# check_nvm
-# check_ngcli
-# check_terminator
-# check_vim
+check_zsh
+check_support_libraries
+check_terminator
+check_vim
+
+check_sublime
+check_gdebi
+check_git
+
+check_node
+check_npm
+check_nvm
+
+check_ngcli
+
 
 #################
 # Customize Hardware
