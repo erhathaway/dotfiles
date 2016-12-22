@@ -17,15 +17,21 @@ getinput()
 
 header()
 {
-	printf "\n\n**"
+	printf "\n********************************************"
+	printf "\n"
 	printf " $1 "
-	printf "**"
-
+	printf "\n********************************************"
 }
 
 footer()
 {
 	printContentLine "$1"
+}
+
+promptYesToContinue()
+{
+	printContentLine "Enter YES to continue or any other character(s) to skip it"
+
 }
 
 installing()
@@ -293,12 +299,34 @@ check_zsh()
 	fi
 }
 
+# INSTALL Google Chrome
+
+install_google_chrome () 
+{
+	sudo apt-get update &&
+	wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add - 
+	sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+	sudo apt-get update &&
+	sudo apt-get install google-chrome-stable
+}
+
+check_google_chrome()
+{
+	local name="Google Chrome"
+	local package="google-chrome-stable"
+
+	if ! pkg_exist "$name" "$package"; then
+		install_google_chrome
+	fi
+}
+
+
 #################
 # Check Hardware
 #################
 adjust_trackpoint() 
 {
-	local directory="/sys/devices/platform/i8042/serio1/serio2/"
+	local directory="/sys/devices/platform/i8042/serio1/serio2"
 	local sensitivity_file="${directory}/sensitivity"
 	local speed_file="${directory}/speed"
 
@@ -314,20 +342,29 @@ adjust_trackpoint()
 	printContentLine "The current trackpoint settings are"
 	printContentLine "speed: $current_speed"
 	printContentLine "sensitivity: $current_sensitivity"
-	
 	printf "\n"
-	printContentLine "Enter a new speed (recommended is 155) or enter the letter 's' to skip"
-	getinput "speed"
-	if [ ! "$speed" == "s" ]; then
-		sudo sh -c "echo $speed > $speed_file"
-		changes_applied
-	fi
+	printContentLine "Do you wish to change these settings?"
+	promptYesToContinue
+	getinput "choice"
 
-	printf "\n"
-	printContentLine "Enter a new sensitivity (recommended is 175) or enter the letter 's' to skip"
-	getinput "sensitivity"
-	if [ ! "$sensitivity" == "s" ]; then
-		sudo sh -c "echo $sensitivity > $sensitivity_file"
+	if [ "$choice" == "YES" ]; then
+		local tmpconfig="/etc/tmpfiles.d/trackpoint.conf"
+		touch $tmpconfig
+
+		printContentLine "Enter a new speed (recommended is 200) from 0 to 255"
+		getinput "speed"
+		printContentLine "Enter a new sensitivity (recommended is 255) from 0 to 255"
+		getinput "sensitivity"
+
+		local content=$(cat <<-END
+			"w ${speed_file} - - - - $speed
+			w ${sensitivity_file} - - - - $sensitivity"
+			END
+			)
+
+		sudo sh -c "echo $content > $tmpconfig"
+		sudo sh -c "systemd-tmpfiles --prefix=/sys --create"
+
 		changes_applied
 	fi
 
@@ -342,13 +379,14 @@ remove_screen_flicker()
 	local configfile="/usr/share/X11/xorg.conf.d/20-intel.conf"
 	local backupconfigfile="${configfile}.bak"
 
-	printContentLine "This operation overwrites the file $configfile.\n A backupfile is made, however you may not wish to do this."
+	printContentLine "This operation overwrites the file $configfile."
+	printContentLine "A backupfile is made at $configfile.bak"
 	printContentLine "Currently the contents of this file are:\n"
 	printContentLine "****** file start ******\n"
 	cat $configfile
 	printContentLine "****** file end ******"
 	printf "\n"
-	printContentLine "Enter YES to overwrite the file or any other character(s) to skip it"
+	promptYesToContinue
 	getinput "choice"
 
 	if [ "$choice" == "YES" ]; then
@@ -368,31 +406,105 @@ remove_screen_flicker()
 
 		sudo sh -c "echo $content > $configfile"
 	fi
+	footer
 }
 
 #################
-# Run checks and install if needed
+# Check Environment
 #################
 
-check_zsh
-check_support_libraries
-check_terminator
-check_vim
+create_ssh_key() 
+{
+	local name="Generate SSH Key"
+	header "$name"
 
-check_sublime
-check_gdebi
-check_git
+	printContentLine "Would you like to generate an SSH key?"
+	promptYesToContinue
+	getinput "choice"
 
-check_node
-check_npm
-check_nvm
+	if [ "$choice" == "YES" ]; then
+		printContentLine "When prompted for a location, just hit the 'enter' key. The default location '~/.ssh/id_rsa' is what you want. Trust me..."
+		printContentLine "Enter your email"
+		getinput "email"
+		ssh-keygen -t rsa -b 4096 -C "$email"
+		eval "$(ssh-agent -s)"
+		ssh-add ~/.ssh/id_rsa
+		
+		printContentLine "Don't forget to add your public ssh key '~/.ssh/id_rsa.pub to any servers / apps you want to connect to"
+		printContentLine "For example: https://github.com/settings/keys"
+	fi
+	footer
+}
 
-check_ngcli
+set_git_user()
+{
+	local name="Set Git User Details"
+	header "$name"
 
+	printContentLine "Would you like to set you git user details?"
+	promptYesToContinue
+	getinput "choice"
 
-#################
-# Customize Hardware
-#################
+	if [ "$choice" == "YES" ]; then
+		printContentLine "Enter your email"
+		getinput "email"
+		git config --global user.email "$email"
+
+		printContentLine "Enter your full name"
+		getinput "name"
+		git config --global user.name "$name"
+	fi
+	footer	
+}
+
+set_zsh_config()
+{
+	local name="Customize .zshrc file - aka set zsh config"
+	header "$name"
+
+	printContentLine "Would you like to use the custom zsh config file? This will overwrite the existing file..."
+	printContentLine "A backupfile is made at ~/.zshrc.bak"
+	promptYesToContinue
+	getinput "choice"
+
+	if [ "$choice" == "YES" ]; then
+		cp ~/.zshrc ~/.zshrc.bak
+		cp .zshrc ~ 
+	fi
+	footer	
+}
+
+# #################
+# # Run checks and install if needed
+# #################
+
+# check_zsh
+# check_support_libraries
+# check_terminator
+# check_vim
+
+# check_sublime
+# check_gdebi
+# check_git
+
+# check_node
+# check_npm
+# check_nvm
+
+# check_ngcli
+# check_google_chrome
+
+# #################
+# # Customize Hardware
+# #################
 
 adjust_trackpoint # X1 Carbon, Gen 4 Only?
-remove_screen_flicker # X1 Carbon, Gen 4 w/ Chrome 
+# remove_screen_flicker # X1 Carbon, Gen 4 w/ Chrome
+
+#################
+# Customize Environment
+#################
+
+# create_ssh_key
+# set_git_user
+# set_zsh_config
