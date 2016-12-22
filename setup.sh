@@ -330,7 +330,7 @@ adjust_trackpoint()
 	local sensitivity_file="${directory}/sensitivity"
 	local speed_file="${directory}/speed"
 
-	local name="Trackpoint Adjustment"
+	local name="Adjust Trackpoint"
 	local target_sensitivity="175"
 	local target_speed="155"
 
@@ -478,33 +478,33 @@ set_zsh_config()
 # # Run checks and install if needed
 # #################
 
-# check_zsh
-# check_support_libraries
-# check_terminator
-# check_vim
+check_zsh
+check_support_libraries
+check_terminator
+check_vim
 
-# check_sublime
-# check_gdebi
-# check_git
+check_sublime
+check_gdebi
+check_git
 
-# check_node
-# check_npm
-# check_nvm
+check_node
+check_npm
+check_nvm
 
-# check_ngcli
-# check_google_chrome
+check_ngcli
+check_google_chrome
 
 # #################
 # # Customize Hardware
 # #################
 
 adjust_trackpoint # X1 Carbon, Gen 4 Only?
-# remove_screen_flicker # X1 Carbon, Gen 4 w/ Chrome
+remove_screen_flicker # X1 Carbon, Gen 4 w/ Chrome
 
 #################
 # Customize Environment
 #################
 
-# create_ssh_key
-# set_git_user
-# set_zsh_config
+create_ssh_key
+set_git_user
+set_zsh_config
